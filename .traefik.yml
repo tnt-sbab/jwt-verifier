@@ -1,0 +1,7 @@
+displayName: JWT verifier
+summary: 'Verifies the Authorization Bearer JWT header RS512 signature, iss, nbf and exp'
+type: middleware
+import: github.com/tnt-sbab/jwt-verifier
+testData:
+  Issuer: 'SBAB'
+  PublicKey: 'MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEApiLb3gAzQY3c0L8tfl9VE/pi83TgqORscQuYlgq3JhF/aPVl9XipEgI5P1lgqUk5zck5TxmHYQ9cQJpQqnnPMU5h6oQf/m/2oxcK+PhAqpgXVxV1vJqvcQ5LcKTZEUqCgM8pi2miWFLs7bjGJHdgbWax1SVOasgHhOLdXAKaXsW5Aa+Su9UZVlIUVBcBdpxfuHlWNt3hNIuZvGnDZaFLqpj/sYYTe7+5SwgNGurAZ/mWmjK8CUKBLlw2KRIDrFZ9TsXqrsAF6eeRTcBmBhl+VRQehDYfBU1EcjLfcTQi24se4ERhHbFADb+D54Xh7jj4CbLWecUYTWTb92j6peUcvwIDAQAB'
