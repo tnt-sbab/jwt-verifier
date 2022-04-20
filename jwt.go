@@ -21,18 +21,24 @@ type Config struct {
 	Issuer    string
 }
 
-func CreateConfig() *Config {
-	return &Config{
-		PublicKey: "",
-		Issuer:    "",
-	}
-}
-
 type JWTVerifier struct {
 	next      http.Handler
 	publicKey *rsa.PublicKey
 	issuer    string
 	name      string
+}
+
+type Token struct {
+	header    string
+	payload   string
+	signature string
+}
+
+func CreateConfig() *Config {
+	return &Config{
+		PublicKey: "",
+		Issuer:    "",
+	}
 }
 
 func New(ctx context.Context, next http.Handler, config *Config, name string) (http.Handler, error) {
@@ -61,7 +67,7 @@ func (j *JWTVerifier) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
 		j.next.ServeHTTP(rw, req)
 		return
 	}
-	token, preprocessError := preprocessJWT(headerToken)
+	token, preprocessError := PreprocessJWT(headerToken)
 	if preprocessError != nil {
 		log.Println("Invalid token format:", preprocessError)
 		http.Error(rw, "Not allowed", http.StatusForbidden)
@@ -82,7 +88,7 @@ func (j *JWTVerifier) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
 	j.next.ServeHTTP(rw, req)
 }
 
-func preprocessJWT(authHeader string) (Token, error) {
+func PreprocessJWT(authHeader string) (Token, error) {
 	cleanedJwt := strings.TrimPrefix(authHeader, "Bearer")
 	cleanedJwt = strings.TrimSpace(cleanedJwt)
 	parts := strings.Split(cleanedJwt, ".")
@@ -115,12 +121,6 @@ func ParseRSAPublicKeyFromPEM(key []byte) (*rsa.PublicKey, error) {
 		return nil, errors.New("key is not a valid RSA public key")
 	}
 	return pkey, nil
-}
-
-type Token struct {
-	header    string
-	payload   string
-	signature string
 }
 
 func (t Token) VerifySignature(publicKey *rsa.PublicKey) error {
