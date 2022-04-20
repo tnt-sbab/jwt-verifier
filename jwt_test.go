@@ -30,3 +30,24 @@ func TestPreprocessJWT(t *testing.T) {
 		}
 	}
 }
+
+func TestClaims_Verify(t *testing.T) {
+	tests := []struct {
+		claims Claims
+		err    string
+	}{
+		{Claims{"SBAB", 1650489053, 1650460133}, ""},
+		{Claims{"SWEDBANK", 1650489053, 1650460133}, "invalid iss"},
+		{Claims{"", 1650489053, 1650460133}, "invalid iss"},
+		{Claims{"SBAB", 1650460253, 1650460133}, "invalid exp"},
+		{Claims{"SBAB", 1650460254, 1650460133}, ""},
+		{Claims{"SBAB", 1650489053, 1650460253}, ""},
+		{Claims{"SBAB", 1650489053, 1650460252}, "invalid nbf"},
+	}
+	for _, row := range tests {
+		err := row.claims.Verify(1650460253, "SBAB")
+		if err != nil && err.Error() != row.err {
+			t.Errorf("Claims %v expected error '%s' but vas '%s'", row.claims, row.err, err)
+		}
+	}
+}
