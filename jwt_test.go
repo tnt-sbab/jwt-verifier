@@ -1,6 +1,7 @@
 package jwt_verifier
 
 import (
+	"errors"
 	"testing"
 )
 
@@ -8,24 +9,24 @@ func TestPreprocessJWT(t *testing.T) {
 	tests := []struct {
 		authHeader string
 		token      Token
-		err        string
+		err        error
 	}{
-		{"Bearer a.b.c", Token{"a", "b", "c"}, ""},
-		{"c.d.e", Token{"c", "d", "e"}, ""},
-		{"Bearer  a.b.c ", Token{"a", "b", "c"}, ""},
-		{" c.d.e ", Token{"c", "d", "e"}, ""},
-		{"Bearer a.b", Token{}, "invalid jwt token"},
-		{"Bearer a.b.c.f", Token{}, "invalid jwt token"},
-		{"a.b", Token{}, "invalid jwt token"},
-		{"a.b.c.f", Token{}, "invalid jwt token"},
-		{"", Token{}, "invalid jwt token"},
+		{"Bearer a.b.c", Token{"a", "b", "c"}, nil},
+		{"c.d.e", Token{"c", "d", "e"}, nil},
+		{"Bearer  a.b.c ", Token{"a", "b", "c"}, nil},
+		{" c.d.e ", Token{"c", "d", "e"}, nil},
+		{"Bearer a.b", Token{}, ErrInvalidJWT},
+		{"Bearer a.b.c.f", Token{}, ErrInvalidJWT},
+		{"a.b", Token{}, ErrInvalidJWT},
+		{"a.b.c.f", Token{}, ErrInvalidJWT},
+		{"", Token{}, ErrInvalidJWT},
 	}
 	for _, row := range tests {
 		token, err := PreprocessJWT(row.authHeader)
 		if token != row.token {
 			t.Errorf("Auth header '%s' should be parsed to token '%s' but was '%s'", row.authHeader, row.token, token)
 		}
-		if err != nil && err.Error() != row.err {
+		if !errors.Is(err, row.err) {
 			t.Errorf("Expected auth header '%s' to generate error '%v' but was '%v'", row.authHeader, row.err, err)
 		}
 	}
@@ -34,19 +35,19 @@ func TestPreprocessJWT(t *testing.T) {
 func TestClaims_Verify(t *testing.T) {
 	tests := []struct {
 		claims Claims
-		err    string
+		err    error
 	}{
-		{Claims{"SBAB", 1650489053, 1650460133}, ""},
-		{Claims{"SEB", 1650489053, 1650460133}, "invalid iss"},
-		{Claims{"", 1650489053, 1650460133}, "invalid iss"},
-		{Claims{"SBAB", 1650460253, 1650460133}, "invalid exp"},
-		{Claims{"SBAB", 1650460254, 1650460133}, ""},
-		{Claims{"SBAB", 1650489053, 1650460253}, ""},
-		{Claims{"SBAB", 1650489053, 1650460254}, "invalid nbf"},
+		{Claims{"SBAB", 1650489053, 1650460133}, nil},
+		{Claims{"SEB", 1650489053, 1650460133}, ErrInvalidISS},
+		{Claims{"", 1650489053, 1650460133}, ErrInvalidISS},
+		{Claims{"SBAB", 1650460253, 1650460133}, ErrInvalidEXP},
+		{Claims{"SBAB", 1650489053, 1650460254}, ErrInvalidNBF},
+		{Claims{"SBAB", 1650460254, 1650460133}, nil},
+		{Claims{"SBAB", 1650489053, 1650460253}, nil},
 	}
 	for _, row := range tests {
 		err := row.claims.Verify(1650460253, "SBAB")
-		if err != nil && err.Error() != row.err || (err == nil && row.err != "") {
+		if !errors.Is(err, row.err) {
 			t.Errorf("Claims %v expected error '%s' but vas '%s'", row.claims, row.err, err)
 		}
 	}

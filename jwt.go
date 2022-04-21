@@ -16,6 +16,17 @@ import (
 	"time"
 )
 
+var (
+	ErrInvalidJWT     = errors.New("invalid jwt token")
+	ErrInvalidISS     = errors.New("invalid iss")
+	ErrInvalidEXP     = errors.New("invalid exp")
+	ErrInvalidNBF     = errors.New("invalid nbf")
+	ErrInvalidKey     = errors.New("invalid key")
+	ErrEmptyISS       = errors.New("Issuer cannot be empty")
+	ErrEmptyPublicKey = errors.New("PublicKey cannot be empty")
+	ErrPublicKey      = errors.New("key is not a valid RSA public key")
+)
+
 type Config struct {
 	PublicKey string
 	Issuer    string
@@ -43,10 +54,10 @@ func CreateConfig() *Config {
 
 func New(ctx context.Context, next http.Handler, config *Config, name string) (http.Handler, error) {
 	if len(config.PublicKey) == 0 {
-		return nil, errors.New("PublicKey cannot be empty")
+		return nil, ErrEmptyPublicKey
 	}
 	if len(config.Issuer) == 0 {
-		return nil, errors.New("Issuer cannot be empty")
+		return nil, ErrEmptyISS
 	}
 	publicKey, err := createPublicKey(config.PublicKey)
 	if err != nil {
@@ -94,7 +105,7 @@ func PreprocessJWT(authHeader string) (Token, error) {
 	parts := strings.Split(cleanedJwt, ".")
 	var token Token
 	if len(parts) != 3 {
-		return token, errors.New("invalid jwt token")
+		return token, ErrInvalidJWT
 	}
 	token.header = parts[0]
 	token.payload = parts[1]
@@ -110,7 +121,7 @@ func createPublicKey(publicKey string) (*rsa.PublicKey, error) {
 func ParseRSAPublicKeyFromPEM(key []byte) (*rsa.PublicKey, error) {
 	var block *pem.Block
 	if block, _ = pem.Decode(key); block == nil {
-		return nil, errors.New("invalid key")
+		return nil, ErrInvalidKey
 	}
 	parsedKey, err := x509.ParsePKIXPublicKey(block.Bytes)
 	if err != nil {
@@ -118,7 +129,7 @@ func ParseRSAPublicKeyFromPEM(key []byte) (*rsa.PublicKey, error) {
 	}
 	pkey, ok := parsedKey.(*rsa.PublicKey)
 	if !ok {
-		return nil, errors.New("key is not a valid RSA public key")
+		return nil, ErrPublicKey
 	}
 	return pkey, nil
 }
@@ -159,13 +170,13 @@ type Claims struct {
 
 func (c Claims) Verify(now int64, issuer string) error {
 	if !c.VerifyIssuer(issuer) {
-		return errors.New("invalid iss")
+		return ErrInvalidISS
 	}
 	if !c.VerifyExpiresAt(now) {
-		return errors.New("invalid exp")
+		return ErrInvalidEXP
 	}
 	if !c.VerifyNotBefore(now) {
-		return errors.New("invalid nbf")
+		return ErrInvalidNBF
 	}
 	return nil
 }
